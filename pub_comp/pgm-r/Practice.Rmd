@@ -1,0 +1,46 @@
+# 企業データ活用のデータサイエンス入門(1)
+
+金融庁の有価証券報告書などの電子開示システム「EDINET」に公開されている上場企業3030社の有価証券
+報告書から生成した各社の簡易的な決算書データの読み込み。
+
+2010年~12年の3期で変則でない有価証券報告書を公開した企業についての9090件
+
+```{r}
+library(tidyverse)
+
+pubcomp <- read.csv("../motodata/pub_comp.csv")
+
+str(pubcomp)
+
+nrow(pubcomp)
+```
+
+大阪府に立地する製造業の企業で、2012年期の売上高営業利益率(OPS)が4%より大きい企業を、資本金の額
+で昇順で絞り込む
+
+* 売上高   項目はデータに存在しないので、導出する必要あり。
+    * 売上総利益=売上高-売上原価
+* 資本金  項目はデータに存在しない。資産合計で代替する。
+
+```{r}
+out <- pubcomp %>%
+    dplyr::filter(決算期年 == 2012, str_detect(所在地,"大阪府")) %>%
+    dplyr::mutate(ops = 営業利益/(売上原価+売上総利益)*100) %>%
+    dplyr::filter(ops > 4) %>%
+    dplyr::arrange(資産合計)
+
+nrow(out)
+
+out %>%
+    dplyr::select(c(TDB企業コード:決算期年,資産合計,売上原価,売上総利益,営業利益)) %>%
+    head()
+```
+
+# 出力
+
+結果の出力
+
+```{r}
+write.table(out, file="./osaka_ops_over4_sort.csv",
+            quote=FALSE, sep=",", row.names=FALSE, col.names=TRUE)
+```
